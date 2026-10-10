@@ -30,6 +30,8 @@ interface HomeSectionProps {
   onCancelOrder?: (orderId: string) => Promise<void>;
 }
 
+const DEFAULT_FALLBACK_IMG = "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=600&q=80";
+
 export function HomeSection({
   onOrderNow,
   onNavigateToReviews,
@@ -74,7 +76,7 @@ export function HomeSection({
       titleTe: "అన్నీ చూడండి",
       titleHi: "सभी उत्पाद",
       desc: "Full catalogue",
-      image: "https://res.cloudinary.com/dplgcubw5/image/upload/v1781761316/WhatsApp_Image_2026-06-18_at_10.00.04_AM_fpdwvp.jpg"
+      image: "https://res.cloudinary.com/dplgcubw5/image/upload/f_auto,q_auto,w_200/v1781761316/WhatsApp_Image_2026-06-18_at_10.00.04_AM_fpdwvp.jpg"
     },
     {
       symbol: "GARELU",
@@ -398,7 +400,16 @@ export function HomeSection({
                 <img
                   src={cat.image}
                   alt={cat.symbol}
+                  loading="lazy"
+                  decoding="async"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (!target.dataset.hasFallback) {
+                      target.dataset.hasFallback = "true";
+                      target.src = DEFAULT_FALLBACK_IMG;
+                    }
+                  }}
                   className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-black/10 rounded-full group-hover:bg-transparent transition-colors duration-300 pointer-events-none" />
@@ -481,6 +492,8 @@ export function HomeSection({
                   <img
                     src={item.imageUrl}
                     alt={item.titleEn}
+                    loading="lazy"
+                    decoding="async"
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
                   />

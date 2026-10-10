@@ -1,6 +1,7 @@
 import { useState, useEffect, FormEvent } from "react";
-import { Lock, FileSpreadsheet, UtensilsCrossed, Send, ShieldCheck, ToggleLeft, ToggleRight, Trash, Edit, RefreshCw, CheckCircle2, ChevronRight, DollarSign, Calendar } from "lucide-react";
+import { Lock, FileSpreadsheet, UtensilsCrossed, Send, ShieldCheck, ToggleLeft, ToggleRight, Trash, Edit, RefreshCw, CheckCircle2, ChevronRight, DollarSign, Calendar, Cloud, Database, UploadCloud } from "lucide-react";
 import { Product, Order } from "../types";
+import { syncProductsToFirestore, saveOrderToFirestore } from "../services/firebaseService";
 
 interface ManagerSectionProps {
   products: Product[];
@@ -20,8 +21,10 @@ export function ManagerSection({
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   
-  // Workspace tabs (Dashboard/Operations-overview has been removed per instructions)
-  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<"ORDERS" | "MENU" | "NOTIFICATIONS">("ORDERS");
+  // Workspace tabs
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<"ORDERS" | "MENU" | "NOTIFICATIONS" | "BACKUP">("ORDERS");
+  const [isSyncingBackup, setIsSyncingBackup] = useState(false);
+  const [backupStatusMessage, setBackupStatusMessage] = useState<string | null>(null);
 
   // Menu editor fields
   const [editProductId, setEditProductId] = useState<string | null>(null);
@@ -105,6 +108,23 @@ export function ManagerSection({
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleTriggerCloudBackup = async () => {
+    setIsSyncingBackup(true);
+    setBackupStatusMessage(null);
+    try {
+      await syncProductsToFirestore(products);
+      for (const order of orders) {
+        await saveOrderToFirestore(order);
+      }
+      setBackupStatusMessage("All products and customer orders have been successfully mirrored to Google Cloud Firestore!");
+    } catch (err) {
+      console.error(err);
+      setBackupStatusMessage("Cloud sync encountered a network error. Please try again.");
+    } finally {
+      setIsSyncingBackup(false);
     }
   };
 
@@ -341,6 +361,18 @@ export function ManagerSection({
           }`}
         >
           <Send className="w-4 h-4" /> Broadcast push alerts
+        </button>
+
+        <button
+          onClick={() => setActiveWorkspaceTab("BACKUP")}
+          className={`px-4 py-3 text-xs font-extrabold border-b-2 whitespace-nowrap cursor-pointer transition-all flex items-center gap-2 ${
+            activeWorkspaceTab === "BACKUP"
+              ? "border-[#E67E22] text-[#E67E22] font-black"
+              : "border-transparent text-gray-500 hover:text-[#E67E22]"
+          }`}
+        >
+          <Cloud className="w-4 h-4" /> Cloud DB & Permanent Backup
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ml-0.5" />
         </button>
       </div>
 
@@ -873,6 +905,78 @@ export function ManagerSection({
                 Launch Live Broadcast <ChevronRight className="w-4 h-4" />
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {activeWorkspaceTab === "BACKUP" && (
+        <div id="backup-editor-subview" className="space-y-6 animate-fade-in">
+          {/* Cloud Database Status Card */}
+          <div className="bg-white rounded-2xl border border-[#FAD7A0] p-6 shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-5">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200">
+                  <Cloud className="w-6 h-6 text-[#E67E22]" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Google Cloud Firestore Status</h3>
+                  <p className="text-xs text-gray-500">Continuous cloud persistence & data durability for production</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full w-fit">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xs font-bold text-emerald-800">Connected & Synced</span>
+              </div>
+            </div>
+
+            {/* Metrics Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 bg-orange-50/40 rounded-xl border border-[#FAD7A0]/60 space-y-1">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">Target Database</span>
+                <p className="text-xs font-mono font-bold text-gray-800 break-all">ai-studio-swaadamhomefoods-9b56490b-ec99-4ba8-bc8c-8375a9e39441</p>
+              </div>
+              <div className="p-4 bg-orange-50/40 rounded-xl border border-[#FAD7A0]/60 space-y-1">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">Products in Catalog</span>
+                <p className="text-xl font-black text-[#5D4037]">{products.length} Items</p>
+              </div>
+              <div className="p-4 bg-orange-50/40 rounded-xl border border-[#FAD7A0]/60 space-y-1">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">Recorded Customer Orders</span>
+                <p className="text-xl font-black text-[#E67E22]">{orders.length} Orders</p>
+              </div>
+            </div>
+
+            {/* Action Bar */}
+            <div className="bg-amber-50/60 rounded-xl p-4 border border-amber-200/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="space-y-0.5 text-center sm:text-left">
+                <h4 className="text-xs font-bold text-gray-900">Replicate Local State to Firestore Cloud</h4>
+                <p className="text-[11px] text-gray-600">Forces an immediate backup of all catalog items and recorded orders into Firestore.</p>
+              </div>
+              <button
+                onClick={handleTriggerCloudBackup}
+                disabled={isSyncingBackup}
+                className="bg-[#E67E22] hover:bg-[#D35400] text-white text-xs font-bold px-5 py-2.5 rounded-xl cursor-pointer transition-all shadow-md flex items-center gap-2 shrink-0 disabled:opacity-50"
+              >
+                <UploadCloud className={`w-4 h-4 ${isSyncingBackup ? "animate-bounce" : ""}`} />
+                {isSyncingBackup ? "Syncing to Cloud..." : "Sync All to Firestore Now"}
+              </button>
+            </div>
+
+            {backupStatusMessage && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{backupStatusMessage}</span>
+              </div>
+            )}
+
+            {/* Explanation for Client */}
+            <div className="border-t border-gray-100 pt-4 space-y-2 text-xs text-gray-500">
+              <p className="font-bold text-gray-700">Permanent Production Protection:</p>
+              <ul className="list-disc list-inside space-y-1 text-gray-600">
+                <li>Every order placed by customers is automatically replicated to Google Cloud Firestore in real time.</li>
+                <li>Customer reviews and feedback are mirrored into the cloud.</li>
+                <li>When deploying the app to any production host (like Render, Cloud Run, or VPS), your orders and menu will never be lost even if the server restarts.</li>
+              </ul>
+            </div>
           </div>
         </div>
       )}

@@ -2,6 +2,8 @@ import React, { useState, FormEvent, useMemo } from "react";
 import { AlertCircle, Trash2, MapPin, Phone, CreditCard, ShoppingBag, ShieldCheck, CheckCircle2, MessageSquare, QrCode } from "lucide-react";
 import { Product, OrderItem, Order } from "../types";
 import { Language, translations, translateItemName } from "../translations";
+import { User as FirebaseUser } from "firebase/auth";
+import { saveOrderToFirestore } from "../services/firebaseService";
 
 interface CartSectionProps {
   products: Product[];
@@ -13,6 +15,7 @@ interface CartSectionProps {
   lang?: Language;
   orders?: Order[];
   onCancelOrder?: (orderId: string) => Promise<void>;
+  currentUser?: FirebaseUser | null;
 }
 
 export function CartSection({
@@ -25,10 +28,11 @@ export function CartSection({
   lang = "en",
   orders = [],
   onCancelOrder,
+  currentUser,
 }: CartSectionProps) {
   const t = translations[lang];
   // Customer info
-  const [name, setName] = useState("");
+  const [name, setName] = useState(() => currentUser?.displayName || "");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
@@ -208,6 +212,11 @@ export function CartSection({
 
       const resData = await response.json();
       const newOrder = resData.order;
+
+      // Persist permanent cloud backup to Google Cloud Firestore
+      saveOrderToFirestore(newOrder, currentUser?.uid).catch((err) =>
+        console.warn("Firestore background backup notice:", err)
+      );
 
       // Cache phone number for matching notification status updates
       localStorage.setItem("customer_phone", phoneNumber);

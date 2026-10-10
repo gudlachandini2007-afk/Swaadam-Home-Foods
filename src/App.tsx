@@ -25,6 +25,9 @@ import { ContactSection } from "./components/ContactSection";
 import { ManagerSection } from "./components/ManagerSection";
 import { LiveChat } from "./components/LiveChat";
 import { SwaadamLogo } from "./components/SwaadamLogo";
+import { UserAuthButton } from "./components/UserAuthButton";
+import { User as FirebaseUser } from "firebase/auth";
+import { subscribeToAuth, saveReviewToFirestore } from "./services/firebaseService";
 
 // Types
 import { Product, Order, Review, PushNotification } from "./types";
@@ -51,6 +54,9 @@ export default function App() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [notifications, setNotifications] = useState<PushNotification[]>([]);
   
+  // Firebase Authenticated user state
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+
   // Local shopping cart: productId -> quantity in Kilograms (e.g. 1.5)
   const [cart, setCart] = useState<Record<string, number>>({});
 
@@ -153,13 +159,21 @@ export default function App() {
     refreshReviewsData();
     refreshNotificationsData();
 
+    // Firebase Auth listener
+    const unsubscribeAuth = subscribeToAuth((user) => {
+      setFirebaseUser(user);
+    });
+
     const interval = setInterval(() => {
       refreshMenuData();
       refreshOrdersData();
       refreshNotificationsData();
     }, 3000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      unsubscribeAuth();
+    };
   }, []);
 
   // Scroll to top of the page whenever the active tab changes to ensure starting from the 1st item
@@ -198,7 +212,7 @@ export default function App() {
     setCart({});
   };
 
-  // Submit written review
+  // Submit written review with permanent Firestore backup
   const handlePostReview = async (customerName: string, rating: number, text: string) => {
     try {
       const res = await fetch("/api/reviews", {
@@ -207,6 +221,12 @@ export default function App() {
         body: JSON.stringify({ customerName, rating, text }),
       });
       if (res.ok) {
+        const data = await res.json();
+        if (data.review) {
+          saveReviewToFirestore(data.review).catch((err) =>
+            console.warn("Firestore review backup notice:", err)
+          );
+        }
         refreshReviewsData();
       }
     } catch (err) {
@@ -359,8 +379,18 @@ export default function App() {
             </button>
           </div>
 
-          {/* Cart Icon trigger */}
+          {/* Header Action Controls */}
           <div className="flex items-center gap-2">
+            {/* Google Authentication & Cloud Sync Profile */}
+            <UserAuthButton
+              user={firebaseUser}
+              onViewMyOrders={() => {
+                setActiveTab("cart");
+                setIsMobileMenuOpen(false);
+              }}
+            />
+
+            {/* Cart Icon trigger */}
             <button
               onClick={() => {
                 setActiveTab("cart");
@@ -506,6 +536,9 @@ export default function App() {
             onClearCart={handleClearCart}
             onPlaceOrderSuccess={handlePlaceOrderSuccess}
             lang={lang}
+            orders={orders}
+            onCancelOrder={handleCancelOrder}
+            currentUser={firebaseUser}
           />
         )}
 

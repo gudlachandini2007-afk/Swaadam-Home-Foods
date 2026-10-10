@@ -3,13 +3,14 @@ import { Search, ShoppingBasket, Plus, Minus, Info, AlertTriangle, Sparkles, Che
 import { Product } from "../types";
 import { Language, translations, translateItemName } from "../translations";
 
+const DEFAULT_FALLBACK_IMG = "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=600&q=80";
 const getFoodImage = (name: string, category: string): string => {
   const normName = name.toLowerCase();
   const normCat = category.toLowerCase();
 
   // High-priority specific overrides
   if (normName.includes("spicy shanaga pappu") || normName.includes("shanaga pappu fry")) {
-    return "https://res.cloudinary.com/dplgcubw5/image/upload/v1781761316/WhatsApp_Image_2026-06-18_at_10.00.04_AM_fpdwvp.jpg";
+    return "https://res.cloudinary.com/dplgcubw5/image/upload/f_auto,q_auto,w_600/v1781761316/WhatsApp_Image_2026-06-18_at_10.00.04_AM_fpdwvp.jpg";
   }
   if (normName.includes("pachhi mirchi garelu") || normName.includes("pachi mirchi garelu") || normName.includes("mirchi garelu")) {
     return "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcRh5uH-zlkCR7BLzdMTujfe49VoSRMPhWnut4pghKLuWnYd1IC8";
@@ -56,7 +57,7 @@ const getFoodImage = (name: string, category: string): string => {
     return "https://www.shutterstock.com/image-photo/balushahi-makhan-bada-indian-sweet-260nw-1076800412.jpg";
   }
   if (normName.includes("burelu")) {
-    return "https://res.cloudinary.com/dplgcubw5/image/upload/v1781714903/burelu_scbbad.jpg";
+    return "https://res.cloudinary.com/dplgcubw5/image/upload/f_auto,q_auto,w_600/v1781714903/burelu_scbbad.jpg";
   }
   if (normName.includes("kobbariladdu") || normName.includes("kobbari laddu") || normName.includes("coconut")) {
     return "https://tse4.mm.bing.net/th/id/OIP.63XwyL1xmd72EborhbjPwQHaGK?r=0&pid=ImgDet&w=184&h=153&c=7&dpr=1.3&o=7&rm=3";
@@ -170,10 +171,10 @@ const getFoodImage = (name: string, category: string): string => {
     return "https://5.imimg.com/data5/SELLER/Default/2023/10/353313680/RM/XE/ON/128182712/dsc00844-500x500.jpg";
   }
   if (normCat === "pickles") {
-    return "https://www.indianhealthyrecipes.com/wp-content/uploads/2020/04/mango-pickle-recipe.jpg";
+    return "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=600&q=80";
   }
 
-  return "https://images.unsplash.com/photo-1601050690597-df056fb4ce78?auto=format&fit=crop&w=600&q=80";
+  return "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=600&q=80";
 };
 
 interface MenuSectionProps {
@@ -328,7 +329,16 @@ export function MenuSection({
                   <img
                     src={getFoodImage(p.name, p.category)}
                     alt={p.name}
+                    loading="lazy"
+                    decoding="async"
                     referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      if (!target.dataset.hasFallback) {
+                        target.dataset.hasFallback = "true";
+                        target.src = DEFAULT_FALLBACK_IMG;
+                      }
+                    }}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
@@ -456,7 +466,16 @@ export function MenuSection({
               <img
                 src={getFoodImage(selectedProduct.name, selectedProduct.category)}
                 alt={selectedProduct.name}
+                loading="eager"
+                decoding="async"
                 referrerPolicy="no-referrer"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (!target.dataset.hasFallback) {
+                    target.dataset.hasFallback = "true";
+                    target.src = DEFAULT_FALLBACK_IMG;
+                  }
+                }}
                 className="w-full h-full object-cover"
               />
             </div>

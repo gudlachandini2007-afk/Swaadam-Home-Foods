@@ -8,7 +8,7 @@ interface SwaadamLogoProps {
 
 export function SwaadamLogo({ className = "", size = 200, lightMode = false }: SwaadamLogoProps) {
   // Use the clear, high-definition authentic branding logo URL requested by the user
-  const logoUrl = "https://res.cloudinary.com/dplgcubw5/image/upload/v1782034552/logo_rusoyn.jpg";
+  const logoUrl = "https://res.cloudinary.com/dplgcubw5/image/upload/f_auto,q_auto,w_400/v1782034552/logo_rusoyn.jpg";
 
   return (
     <div
@@ -19,7 +19,7 @@ export function SwaadamLogo({ className = "", size = 200, lightMode = false }: S
         src={logoUrl}
         alt="Swaadam Home Foods"
         referrerPolicy="no-referrer"
-        className="w-full h-auto object-cover block"
+        loading="eager" decoding="async" className="w-full h-auto object-cover block"
       />
     </div>
   );

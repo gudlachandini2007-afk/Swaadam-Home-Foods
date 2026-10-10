@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isValidNumber(val, minVal, maxVal) {
+      return val is number && val >= minVal && val <= maxVal;
+    }
+
+    // Products collection: public read, authenticated or admin write
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // Reviews collection: public read, validated create
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isValidString(request.resource.data.customerName, 1, 100)
+                    && isValidString(request.resource.data.text, 1, 1000)
+                    && isValidNumber(request.resource.data.rating, 1, 5);
+      allow update, delete: if isSignedIn();
+    }
+
+    // Orders collection: customer can create and read their order
+    match /orders/{orderId} {
+      allow create: if isValidString(request.resource.data.customerName, 1, 100)
+                    && isValidString(request.resource.data.phone, 5, 20)
+                    && isValidNumber(request.resource.data.total, 0, 100000);
+      allow read: if true;
+      allow update, delete: if isSignedIn();
+    }
+
+    // Users collection: user owns their data
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+  }
+}

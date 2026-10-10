@@ -1,0 +1,82 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Handcrafted food item available in the store",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "price": { "type": "number" },
+        "description": { "type": "string" },
+        "isAvailable": { "type": "boolean" },
+        "estimatedDays": { "type": "number" }
+      },
+      "required": ["id", "name", "category", "price", "description", "isAvailable"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer food order with itemized cart and delivery details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerName": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "total": { "type": "number" },
+        "status": { "type": "string" },
+        "notes": { "type": "string" },
+        "cancelReason": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "notificationSent": { "type": "boolean" },
+        "userId": { "type": "string" }
+      },
+      "required": ["id", "customerName", "phone", "address", "total", "status", "createdAt"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Customer review and feedback rating",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerName": { "type": "string" },
+        "rating": { "type": "number" },
+        "text": { "type": "string" },
+        "date": { "type": "string" }
+      },
+      "required": ["id", "customerName", "rating", "text", "date"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Food products and menu inventory"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Placed food orders"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Verified customer reviews and feedback"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile information"
+    }
+  }
+}

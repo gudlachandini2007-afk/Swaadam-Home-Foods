@@ -571,25 +571,14 @@ app.put("/api/orders/:id", (req, res) => {
       db.orders[index].deliveredConfirmationSent = deliveredConfirmationSent;
     }
     
-    // If marked as Completed, ensure timestamps and trigger automated notification
+    // If marked as Completed, ensure timestamps
     if (status === "Completed") {
       db.orders[index].isDeliveryConfirmed = true;
       if (!db.orders[index].deliveredAt) {
         db.orders[index].deliveredAt = new Date().toISOString();
       }
-      
-      // Auto-push confirmation notice to dashboard notification center
-      const deliveryNotice: PushNotification = {
-        id: "notif_deliv_" + Date.now(),
-        title: "Order Delivered!",
-        message: `Order #${id} for ${db.orders[index].customerName} (Phone: ${db.orders[index].phone}) has been safely delivered and confirmed.`,
-        type: "info",
-        createdAt: new Date().toISOString()
-      };
-      db.notifications.unshift(deliveryNotice);
     }
 
-    db.orders[index].notificationSent = true; // Mark as fresh update notification
     saveDB(db);
     res.json({ success: true, order: db.orders[index] });
   } else {

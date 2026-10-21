@@ -65,10 +65,6 @@ export default function App() {
   const [checkedOutId, setCheckedOutId] = useState<string | null>(null);
   const [whatsappRedirectUrl, setWhatsappRedirectUrl] = useState<string>("");
 
-  // Live Toast push notification
-  const [activeToast, setActiveToast] = useState<PushNotification | null>(null);
-  const [seenNotificationIds, setSeenNotificationIds] = useState<Set<string>>(new Set());
-
   // Safe JSON fetch utility to prevent "Unexpected token '<' / doctype" errors when proxies return HTML
   const fetchJsonSafely = async <T,>(url: string): Promise<T | null> => {
     try {
@@ -102,28 +98,6 @@ export default function App() {
     const data = await fetchJsonSafely<Order[]>("/api/orders");
     if (data && Array.isArray(data)) {
       setOrders(data);
-      
-      // Dynamic push update if order from active customer is transitioned!
-      const adminToken = localStorage.getItem("swaadam_admin_token");
-      if (!adminToken) {
-        const userPhone = localStorage.getItem("customer_phone");
-        if (userPhone) {
-          const customerActiveOrders = data.filter((o: Order) => o.phone === userPhone);
-          customerActiveOrders.forEach((o: Order) => {
-            if (o.status !== "Pending" && o.notificationSent && !seenNotificationIds.has(o.id + o.status)) {
-              setActiveToast({
-                id: o.id + o.status,
-                title: `🔥 Order status update: ${o.id}`,
-                message: `Your food crate has transitioned to: ${o.status}! Our chef compiled it with absolute fresh quality!`,
-                type: "info",
-                createdAt: new Date().toISOString()
-              });
-              seenNotificationIds.add(o.id + o.status);
-              setSeenNotificationIds(new Set(seenNotificationIds));
-            }
-          });
-        }
-      }
     }
   };
 
@@ -138,15 +112,6 @@ export default function App() {
     const data = await fetchJsonSafely<PushNotification[]>("/api/notifications");
     if (data && Array.isArray(data)) {
       setNotifications(data);
-
-      if (data.length > 0) {
-        const newest = data[0];
-        if (!seenNotificationIds.has(newest.id)) {
-          setActiveToast(newest);
-          seenNotificationIds.add(newest.id);
-          setSeenNotificationIds(new Set(seenNotificationIds));
-        }
-      }
     }
   };
 
@@ -578,28 +543,6 @@ export default function App() {
         )}
 
       </main>
-
-      {/* Floating live push notification alerts system widget */}
-      {activeToast && (
-        <div id="live-toast-box" className="fixed bottom-6 left-6 z-50 max-w-sm w-full bg-neutral-900 border border-amber-500/40 rounded-2xl p-4 shadow-2xl flex items-start gap-3 animate-slide-up">
-          <div className="bg-amber-500 text-neutral-950 p-1.5 rounded-lg shrink-0">
-            <Bell className="w-4.5 h-4.5" />
-          </div>
-          <div className="flex-1 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] uppercase font-bold text-amber-500 tracking-wider">Live Swaadam Notice</span>
-              <button
-                onClick={() => setActiveToast(null)}
-                className="text-neutral-500 hover:text-white p-0.5 cursor-pointer"
-              >
-                <X className="w-4.5 h-4.5" />
-              </button>
-            </div>
-            <h4 className="text-xs font-bold text-white pr-2">{activeToast.title}</h4>
-            <p className="text-[11px] text-neutral-400 leading-relaxed pr-1">{activeToast.message}</p>
-          </div>
-        </div>
-      )}
 
       {/* ORDER COMPILATION SUCCESS DIALOG MODAL (Simulated invoice) */}
       {checkedOutId && (

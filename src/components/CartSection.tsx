@@ -47,7 +47,7 @@ export function CartSection({
   const [formError, setFormError] = useState("");
 
   const handleDownloadQR = async () => {
-    const qrData = `upi://pay?pa=paytm.s27plp6@pty&pn=Swaadam%20Home%20Foods&am=${grandTotal + deliveryCharge}&cu=INR&tn=Swaadam%20Order`;
+    const qrData = `upi://pay?pa=paytm.s27plp6@pty&pn=Swaadam%20Home%20Foods&am=${grandTotal}&cu=INR&tn=Swaadam%20Order`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrData)}`;
     try {
       const response = await fetch(qrUrl);
@@ -55,7 +55,7 @@ export function CartSection({
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = blobUrl;
-      link.download = `Swaadam_QR_Pay_Rs${grandTotal + deliveryCharge}.png`;
+      link.download = `Swaadam_QR_Pay_Rs${grandTotal}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -128,21 +128,8 @@ export function CartSection({
 
   const deliveryDistanceKm = distanceInfo.distance;
 
-  // Real-time dynamic delivery charge computation:
-  // - Orders >= ₹1000: Free Delivery!
-  // - Orders ₹500 - ₹999: ₹30 Flat Rate!
-  // - Orders 0 - ₹499:
-  //    - Distance <= 3 km: ₹30
-  //    - Distance > 3 km: ₹50
-  const deliveryCharge = useMemo(() => {
-    if (grandTotal >= 1000) {
-      return 0;
-    }
-    if (grandTotal >= 500 && grandTotal <= 999) {
-      return 30;
-    }
-    return deliveryDistanceKm <= 3 ? 30 : 50;
-  }, [grandTotal, deliveryDistanceKm]);
+  // 100% Free Delivery permanently across all orders
+  const deliveryCharge = 0;
 
   // Form check
   const handlePaymentSubmit = async (e: FormEvent) => {
@@ -201,8 +188,8 @@ export function CartSection({
           phone: phoneNumber,
           address,
           items: orderItems,
-          total: grandTotal + deliveryCharge,
-          notes: notes + ` | Paid via ${paymentMethod} | Distance: ${deliveryDistanceKm} km (${deliveryDistanceKm <= 5 ? "Up to 5 km" : "More than 5 km"})`,
+          total: grandTotal,
+          notes: notes ? `${notes} | Paid via ${paymentMethod}` : `Paid via ${paymentMethod}`,
         }),
       });
 
@@ -222,7 +209,7 @@ export function CartSection({
           phone: phoneNumber,
           address,
           items: orderItems,
-          total: grandTotal + deliveryCharge,
+          total: grandTotal,
           status: "Pending",
           notes,
           createdAt: new Date().toISOString(),
@@ -259,8 +246,8 @@ I want to place an order from your traditional website.
 ${orderLines}
 
 ---------------------------------
-*DELIVERY CHARGE (Jagtial local):* ₹${deliveryCharge}/- (Distance: ${deliveryDistanceKm} km)
-*GRAND TOTAL:* ₹${grandTotal + deliveryCharge}/- (All inclusive)
+*DELIVERY CHARGE:* Decided by owner on the spot based on distance covered
+*ITEMS TOTAL:* ₹${grandTotal}/-
 ---------------------------------
 *PAYMENT STATUS:* ${paymentMethod === "COD" ? "Cash on Delivery / Direct GPay" : paymentMethod === "CARD" ? "Card Simulated on Portal" : `Verified UPI Payment - GPay/PhonePe/Paytm/BHIM`}
 ---------------------------------
@@ -484,14 +471,25 @@ Please prepare fresh and deliver! ధన్యవాదాలు!`;
             <span>{t.subtotal}</span>
             <span className="font-mono">₹{grandTotal}/-</span>
           </div>
-          <div className="flex justify-between text-gray-600 flex-wrap gap-1">
-            <span>{lang === "te" ? "స్థానిక డెలివరీ ఛార్జీ" : lang === "hi" ? "स्थानीय डिलीवरी शुल्क" : "Local Delivery Charge"}</span>
-            <span className="font-mono text-[#E67E22] font-extrabold">₹{deliveryCharge}/-</span>
+          <div className="flex justify-between items-center text-[#5D4037] font-semibold text-xs bg-amber-50/70 border border-amber-200/60 p-2.5 rounded-xl">
+            <span className="flex items-center gap-1 font-bold text-gray-700">
+              🚚 {lang === "te" ? "డెలివరీ ఛార్జీ" : lang === "hi" ? "डिलीवरी शुल्क" : "Delivery Charge"}
+            </span>
+            <span className="font-bold text-[11px] text-[#E67E22] text-right">
+              {lang === "te" ? "దూరాన్ని బట్టి స్పాట్‌లో నిర్ణయం" : lang === "hi" ? "दूरी अनुसार मौके पर तय" : "Decided by owner on spot"}
+            </span>
           </div>
           <div className="flex justify-between text-base font-black text-[#5D4037] pt-2 border-t border-dashed border-[#FAD7A0]/45">
-            <span>{t.totalBill}</span>
-            <span className="font-black text-[#E67E22] font-mono text-lg">₹{grandTotal + deliveryCharge}/-</span>
+            <span>{t.totalBill} ({lang === "te" ? "వస్తువుల మొత్తం" : lang === "hi" ? "आइटम कुल" : "Items Total"})</span>
+            <span className="font-black text-[#E67E22] font-mono text-lg">₹{grandTotal}/-</span>
           </div>
+          <p className="text-[10px] text-gray-500 font-medium italic -mt-1 leading-snug">
+            *{lang === "te" 
+              ? "గమనిక: డెలివరీ ఛార్జీ దూరం ఆధారంగా స్పాట్‌లో యజమాని ద్వారా నిర్ణయించబడుతుంది." 
+              : lang === "hi" 
+              ? "नोट: डिलीवरी शुल्क दूरी के आधार पर मौके पर मालिक द्वारा तय किया जाएगा।" 
+              : "Note: Delivery charge will be decided on the spot by the owner based on distance covered."}
+          </p>
         </div>
       </div>
 
@@ -569,85 +567,30 @@ Please prepare fresh and deliver! ధన్యవాదాలు!`;
               />
             </div>
 
-            {/* Automatic Google Maps Delivery Estimator */}
-            <div className="bg-[#FFFDF9] border border-[#FAD7A0] p-4 rounded-xl space-y-3.5 shadow-xs relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-orange-100/10 rounded-full blur-xl pointer-events-none" />
-              
-              <div className="flex items-center gap-2 text-xs font-extrabold text-[#E67E22] uppercase tracking-wider">
-                <MapPin className="w-4 h-4" />
-                <span>📍 Google Maps Automatic Delivery Estimator</span>
-              </div>
-
-              {address.trim().length < 5 ? (
-                <div className="bg-amber-50/50 p-3 rounded-lg border border-dashed border-[#FAD7A0]/70 text-center">
-                  <p className="text-[11px] text-[#5D4037] font-bold">
+            {/* Delivery Charge Notice (Based on distance, decided by owner on spot) */}
+            <div className="bg-amber-50/80 border border-amber-300/80 p-4 rounded-xl flex items-center justify-between text-[#5D4037] text-xs font-bold shadow-2xs">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl shrink-0">🚚</span>
+                <div>
+                  <span className="block font-black text-[#5D4037] text-xs sm:text-sm">
                     {lang === "te" 
-                      ? "డెలివరీ దూరమును లెక్కించడానికి దయచేసి పైన మీ పూర్తి చిరునామా నమోదు చేయండి." 
+                      ? "డెలివరీ ఛార్జీ: దూరం ఆధారంగా స్పాట్‌లో యజమాని ద్వారా నిర్ణయించబడుతుంది" 
                       : lang === "hi" 
-                      ? "डिलीवरी दूरी की गणना करने के लिए कृपया ऊपर अपना पूरा पता दर्ज करें।" 
-                      : "Please enter your complete address to compute the automatic delivery distance."}
-                  </p>
+                      ? "डिलीवरी शुल्क: दूरी के आधार पर मालिक द्वारा मौके पर तय किया जाएगा" 
+                      : "Delivery Charge: Decided by Owner on the Spot Based on Distance Covered"}
+                  </span>
+                  <span className="text-[11px] text-[#8C6D38] font-semibold block mt-0.5 leading-snug">
+                    {lang === "te" 
+                      ? "డెలివరీ చేరే దూరాన్ని బట్టి ఖచ్చితమైన ఛార్జీని యజమాని స్పాట్‌లో నిర్ణయిస్తారు." 
+                      : lang === "hi" 
+                      ? "कवर की गई दूरी के आधार पर डिलीवरी शुल्क मालिक द्वारा मौके पर तय किया जाएगा।" 
+                      : "Based on the distance covered, delivery charges will be decided by the owner on the spot."}
+                  </span>
                 </div>
-              ) : (
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between bg-white border border-[#FAD7A0]/65 p-2.5 rounded-lg">
-                    <div className="space-y-0.5">
-                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">ROUTE CHANNELS</span>
-                      <span className="text-xs font-black text-[#5D4037] truncate max-w-[190px] block">
-                        Ganesh Nagar (Shop) ➔ {distanceInfo.landmark || "JAGTIAL LOCAL"}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">DISTANCE</span>
-                      <span className="text-xs font-black text-[#E67E22] font-mono">
-                        {deliveryDistanceKm} km
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center bg-[#121212] text-[#dfba73] p-3 rounded-lg font-mono text-[11px] font-bold">
-                    <div className="flex items-center gap-1.5">
-                      <span>🚚</span>
-                      <span>DELIVERY CHARGE:</span>
-                    </div>
-                    <div className="text-sm font-black text-white">
-                      {deliveryCharge === 0 ? "🎁 FREE DELIVERY" : `₹${deliveryCharge}/-`}
-                    </div>
-                  </div>
-
-                  {deliveryCharge === 0 ? (
-                    <p className="text-[10px] text-emerald-700 font-extrabold leading-snug">
-                      🎉 {lang === "te" ? "మహా ప్రమోషన్! ₹1000 పైన ఆర్డరు చేసినందుకు ఉచిత డెలివరీ వర్తింపజేయబడినది." : lang === "hi" ? "बड़ी बचत! ₹1000 से अधिक के ऑर्डर पर मुफ़्त डिलीवरी लागू।" : "Mega Savings! Free Delivery applied automatically for ordering above ₹1000."}
-                    </p>
-                  ) : (
-                    <div className="space-y-1 text-[10px] text-gray-600 font-semibold">
-                      <p>
-                        {grandTotal >= 500 && grandTotal <= 999 ? (
-                          <span>✨ {lang === "te" ? "ఖరీదు ₹500 - ₹999 అయినందున కేవలం ₹30 డెలివరీ ఛార్జ్ మాత్రమే!" : lang === "hi" ? "ऑर्डर मूल्य ₹500 - ₹999 होने पर केवल ₹30 डिलीवरी शुल्क।" : "Special: flat-rate ₹30 delivery fee for order values between ₹500 and ₹999!"}</span>
-                        ) : (
-                          <span>
-                            {deliveryDistanceKm <= 3 
-                              ? (lang === "te" ? "• 0-3 కిమీ లోపు ఉన్నందున కేవలం ₹30 మాత్రమే ఛార్జ్ చేయబడినది." : lang === "hi" ? "• 0-3 किमी के भीतर होने पर केवल ₹30 शुल्क लगाया गया है।" : "• Estimated distance is 0-3 km: Only ₹30 delivery charge applies.")
-                              : (lang === "te" ? "• 3 కిమీల పైన ఉన్నందున కేవలం ₹50 మాత్రమే ఛార్జ్ చేయబడినది." : lang === "hi" ? "• 3 किमी से अधिक होने पर केवल ₹50 शुल्क लगाया गया है।" : "• Estimated distance is above 3 km: Flat ₹50 delivery charge applies.")
-                            }
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-[9px] text-[#E67E22] font-semibold">
-                        💡 {lang === "te" ? "ప్రమోషనల్ ఆఫర్: ₹1000 పైబడి ఆర్డర్ చేసి పూర్తి ఉచిత డెలివరీ పొందండి!" : lang === "hi" ? "प्रमोशनल ऑफ़र: ₹1000 से अधिक का ऑर्डर करके मुफ़्त डिलीवरी प्राप्त करें!" : "Promotional Tip: Add items of ₹1000 or more to get 100% Free Shipping!"}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <p className="text-[9px] text-gray-500 font-semibold leading-relaxed">
-                {lang === "te"
-                  ? "• Google Maps క్లౌడ్ ద్వారా మీ అడ్రస్ ఆధారంగా దూరం లెక్కించబడుతుంది. ఆర్డర్‌లు కేవలం జగిత్యాల స్థానిక పరిమితుల్లో విజయవంతంగా చేయబడతాయి."
-                  : lang === "hi"
-                  ? "• Google Maps क्लाउड के माध्यम से आपके पते के आधार पर दूरी की गणना की जाती है। केवल जगतियाल सीमा के भीतर ही डिलीवरी की जाती है।"
-                  : "• System estimates distances directly using Google Maps geodata based on your address. Active local limits apply."}
-              </p>
+              </div>
+              <span className="bg-[#E67E22] text-white text-[10px] uppercase font-black px-2.5 py-1.5 rounded-lg tracking-wider shrink-0 shadow-xs whitespace-nowrap">
+                ON SPOT
+              </span>
             </div>
 
             <div>
@@ -772,12 +715,12 @@ Please prepare fresh and deliver! ధన్యవాదాలు!`;
                   <a
                     href={
                       upiProvider === "GPay"
-                        ? `tez://gpay/pay?pa=paytm.s27plp6@pty&pn=Swaadam%20Home%20Foods&am=${grandTotal + deliveryCharge}&cu=INR&tn=Swaadam%20Order`
+                        ? `tez://gpay/pay?pa=paytm.s27plp6@pty&pn=Swaadam%20Home%20Foods&am=${grandTotal}&cu=INR&tn=Swaadam%20Order`
                         : upiProvider === "PhonePe"
-                        ? `phonepe://pay?pa=paytm.s27plp6@pty&pn=Swaadam%20Home%20Foods&am=${grandTotal + deliveryCharge}&cu=INR&tn=Swaadam%20Order`
+                        ? `phonepe://pay?pa=paytm.s27plp6@pty&pn=Swaadam%20Home%20Foods&am=${grandTotal}&cu=INR&tn=Swaadam%20Order`
                         : upiProvider === "Paytm"
-                        ? `paytmmp://pay?pa=paytm.s27plp6@pty&pn=Swaadam%20Home%20Foods&am=${grandTotal + deliveryCharge}&cu=INR&tn=Swaadam%20Order`
-                        : `bhim://pay?pa=paytm.s27plp6@pty&pn=Swaadam%20Home%20Foods&am=${grandTotal + deliveryCharge}&cu=INR&tn=Swaadam%20Order`
+                        ? `paytmmp://pay?pa=paytm.s27plp6@pty&pn=Swaadam%20Home%20Foods&am=${grandTotal}&cu=INR&tn=Swaadam%20Order`
+                        : `bhim://pay?pa=paytm.s27plp6@pty&pn=Swaadam%20Home%20Foods&am=${grandTotal}&cu=INR&tn=Swaadam%20Order`
                     }
                     className="w-full max-w-sm bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white py-3.5 px-4 rounded-xl font-bold text-center text-xs shadow-md flex items-center justify-center gap-2 transition-all active:scale-97 cursor-pointer"
                   >
@@ -786,7 +729,7 @@ Please prepare fresh and deliver! ధన్యవాదాలు!`;
                       ? `${upiProvider} ద్వారా నిమిషంలో నేరుగా చెల్లించండి`
                       : lang === "hi"
                       ? `सीधे ${upiProvider} से तुरंत भुगतान करें`
-                      : `Launch & Pay ₹${grandTotal + deliveryCharge} via ${upiProvider}`}
+                      : `Launch & Pay ₹${grandTotal} via ${upiProvider}`}
                   </a>
                   <p className="text-[9px] text-[#E67E22] font-black tracking-wide -mt-1 text-center font-mono">
                     {lang === "te" ? "మొబైల్ ఫోన్‌లో ఉన్నప్పుడు ఈ పై బటన్‌ను నొక్కడమే సులభం!" : lang === "hi" ? "मोबाइल पर होने पर बटन पर टैब करना सबसे आसान है!" : "For mobile users: Tapping the button directly launches your UPI checkout app!"}
@@ -803,7 +746,7 @@ Please prepare fresh and deliver! ధన్యవాదాలు!`;
                   <div 
                     title="Click here to autonavigate and pay via UPI"
                     onClick={() => {
-                      const universalLink = `upi://pay?pa=paytm.s27plp6@pty&pn=Swaadam%20Home%20Foods&am=${grandTotal + deliveryCharge}&cu=INR&tn=Swaadam%20Order`;
+                      const universalLink = `upi://pay?pa=paytm.s27plp6@pty&pn=Swaadam%20Home%20Foods&am=${grandTotal}&cu=INR&tn=Swaadam%20Order`;
                       window.location.href = universalLink;
                     }}
                     className="group relative w-56 bg-white rounded-2xl shadow-lg border-2 border-sky-400 overflow-hidden flex flex-col items-center select-none cursor-pointer transition-all hover:scale-103 hover:shadow-sky-200/50"
@@ -824,7 +767,7 @@ Please prepare fresh and deliver! ధన్యవాదాలు!`;
                     {/* QR Image with dynamic pricing link */}
                     <div className="p-2.5 bg-white border border-gray-100 rounded-lg shadow-inner relative">
                       <img 
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`upi://pay?pa=paytm.s27plp6%40pty&pn=Swaadam%20Home%2520Foods&am=${grandTotal + deliveryCharge}&cu=INR`)}`} 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`upi://pay?pa=paytm.s27plp6%40pty&pn=Swaadam%20Home%2520Foods&am=${grandTotal}&cu=INR`)}`} 
                         alt="Paytm UPI QR Code scanner" 
                         className="w-32 h-32 object-contain block"
                         id="paytm-qr-img"
@@ -841,7 +784,7 @@ Please prepare fresh and deliver! ధన్యవాదాలు!`;
                     {/* QR Standee Footer with Dynamic Price tag */}
                     <div className="w-full bg-slate-50 py-1.5 border-t border-gray-150 flex flex-col items-center text-center font-sans mt-2.5">
                       <span className="text-[8px] font-extrabold text-blue-500 uppercase tracking-widest">Amount Payable</span>
-                      <span className="text-xs font-black text-gray-800 -mt-0.5">₹{grandTotal + deliveryCharge}/-</span>
+                      <span className="text-xs font-black text-gray-800 -mt-0.5">₹{grandTotal}/-</span>
                       <span className="text-[8px] font-bold text-gray-400 mt-1 select-all">paytm.s27plp6@pty</span>
                     </div>
 

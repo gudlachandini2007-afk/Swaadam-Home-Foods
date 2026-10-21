@@ -189,38 +189,6 @@ export function HomeSection({
 
   return (
     <div id="swaadam-home-view" className="space-y-12">
-      
-
-
-      {/* Real-time Push Notification Simulation banner */}
-      {notifications.length > 0 && (
-        <div id="push-notifications-panel" className="max-w-4xl mx-auto px-4">
-          <div className="bg-neutral-950 border-2 border-[#dfba73] rounded-2xl p-4 flex items-start gap-4 relative animate-fade-in shadow-xl shadow-black/40">
-            <div className="bg-[#dfba73] text-neutral-950 p-2.5 rounded-xl shrink-0">
-              <Bell className="w-5 h-5 text-neutral-950" />
-            </div>
-            <div className="flex-1 space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs uppercase font-extrabold tracking-widest text-[#dfba73] font-mono">Push Notification Alert</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              </div>
-              <h4 className="text-sm sm:text-base font-black text-[#FCFAF4] leading-tight">
-                {notifications[0].title}
-              </h4>
-              <p className="text-xs sm:text-sm text-[#e2cfbe] font-medium leading-relaxed">
-                {notifications[0].message}
-              </p>
-            </div>
-            <button
-              onClick={() => onDismissNotification(notifications[0].id)}
-              className="text-xs text-neutral-400 hover:text-[#dfba73] font-bold hover:underline p-1 cursor-pointer transition-colors shrink-0"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* 2. MAIN HERO BANNER - Split Layout & Staggered Animations */}
       <section id="hero-banner" className="relative min-h-[580px] flex items-center justify-center py-16 px-6 bg-gradient-to-b from-[#181818] via-[#121212] to-[#1a1a1a] rounded-3xl overflow-hidden border-2 border-[#C5A059] shadow-2xl shadow-[#C5A059]/10">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(197,160,89,0.12),transparent_75%)] pointer-events-none" />

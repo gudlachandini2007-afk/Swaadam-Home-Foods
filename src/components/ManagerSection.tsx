@@ -1145,18 +1145,40 @@ export function ManagerSection({
             </div>
 
             {/* Metrics Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-4 bg-orange-50/40 rounded-xl border border-[#FAD7A0]/60 space-y-1">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">Target Database</span>
-                <p className="text-xs font-mono font-bold text-gray-800 break-all">ai-studio-swaadamhomefoods-9b56490b-ec99-4ba8-bc8c-8375a9e39441</p>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">Firebase Project ID</span>
+                <p className="text-xs font-mono font-black text-[#5D4037]">poetic-sound-w07pf</p>
+                <a
+                  href="https://console.firebase.google.com/project/poetic-sound-w07pf/firestore"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[10px] text-[#E67E22] hover:underline font-bold block pt-0.5"
+                >
+                  Open in Firebase Console ↗
+                </a>
+              </div>
+              <div className="p-4 bg-orange-50/40 rounded-xl border border-[#FAD7A0]/60 space-y-1">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">Database Instance</span>
+                <p className="text-[11px] font-mono font-bold text-gray-800 break-all leading-tight">ai-studio-swaadamhomefoods-9b56490b-ec99-4ba8-bc8c-8375a9e39441</p>
+                <a
+                  href="https://console.cloud.google.com/firestore/databases/ai-studio-swaadamhomefoods-9b56490b-ec99-4ba8-bc8c-8375a9e39441/data?project=poetic-sound-w07pf"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[10px] text-[#E67E22] hover:underline font-bold block pt-0.5"
+                >
+                  Open in Google Cloud Console ↗
+                </a>
               </div>
               <div className="p-4 bg-orange-50/40 rounded-xl border border-[#FAD7A0]/60 space-y-1">
                 <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">Products in Catalog</span>
                 <p className="text-xl font-black text-[#5D4037]">{products.length} Items</p>
+                <span className="text-[10px] text-emerald-600 font-bold block">✓ Backed up in cloud</span>
               </div>
               <div className="p-4 bg-orange-50/40 rounded-xl border border-[#FAD7A0]/60 space-y-1">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">Recorded Customer Orders</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">Customer Orders</span>
                 <p className="text-xl font-black text-[#E67E22]">{orders.length} Orders</p>
+                <span className="text-[10px] text-emerald-600 font-bold block">✓ Real-time synced</span>
               </div>
             </div>
 

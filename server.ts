@@ -405,7 +405,7 @@ const loadDB = () => {
     const rawData = fs.readFileSync(DB_FILE, "utf8");
     const db = JSON.parse(rawData);
     
-    // Auto-sync products from defaultProducts to support additions and basic template updates
+    // Auto-sync products from defaultProducts to support additions of new products only
     if (db && Array.isArray(db.products)) {
       let isChanged = false;
       
@@ -414,12 +414,6 @@ const loadDB = () => {
         if (existingIdx === -1) {
           db.products.push(dp);
           isChanged = true;
-        } else {
-          if (db.products[existingIdx].price !== dp.price || db.products[existingIdx].name !== dp.name) {
-            db.products[existingIdx].price = dp.price;
-            db.products[existingIdx].name = dp.name;
-            isChanged = true;
-          }
         }
       });
       
@@ -471,6 +465,12 @@ app.put("/api/menu/:id", (req, res) => {
   
   const index = db.products.findIndex((p: Product) => p.id === id);
   if (index !== -1) {
+    if (updatedItem.price !== undefined && updatedItem.price !== null) {
+      updatedItem.price = Number(updatedItem.price);
+    }
+    if (updatedItem.estimatedDays !== undefined && updatedItem.estimatedDays !== null && updatedItem.estimatedDays !== "") {
+      updatedItem.estimatedDays = Number(updatedItem.estimatedDays);
+    }
     db.products[index] = { ...db.products[index], ...updatedItem };
     saveDB(db);
     res.json({ success: true, product: db.products[index] });

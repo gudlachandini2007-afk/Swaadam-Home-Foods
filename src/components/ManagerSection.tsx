@@ -1,7 +1,7 @@
 import { useState, useEffect, FormEvent } from "react";
 import { Lock, FileSpreadsheet, UtensilsCrossed, Send, ShieldCheck, ToggleLeft, ToggleRight, Trash, Edit, RefreshCw, CheckCircle2, ChevronRight, DollarSign, Calendar, Cloud, Database, UploadCloud } from "lucide-react";
 import { Product, Order } from "../types";
-import { syncProductsToFirestore, saveOrderToFirestore } from "../services/firebaseService";
+import { syncProductsToFirestore, saveOrderToFirestore, updateProductInFirestore } from "../services/firebaseService";
 
 interface ManagerSectionProps {
   products: Product[];
@@ -30,6 +30,8 @@ export function ManagerSection({
   const [editProductId, setEditProductId] = useState<string | null>(null);
   const [editPrice, setEditPrice] = useState<number>(0);
   const [editEstDays, setEditEstDays] = useState<number | "">("");
+  const [isSavingPrice, setIsSavingPrice] = useState(false);
+  const [priceSuccessNotice, setPriceSuccessNotice] = useState<string | null>(null);
   const [newProductName, setNewProductName] = useState("");
   const [newProductCategory, setNewProductCategory] = useState<any>("GARELU");
   const [newProductPrice, setNewProductPrice] = useState("");
@@ -144,9 +146,14 @@ export function ManagerSection({
     }
   };
 
-  const handleUpdateProductPrice = async (productId: string) => {
+  const handleUpdateProductPrice = async (productId: string, productName?: string) => {
+    const priceNum = Number(editPrice);
+    if (isNaN(priceNum) || priceNum < 0) {
+      return;
+    }
+    setIsSavingPrice(true);
     try {
-      const payload: Partial<Product> = { price: Number(editPrice) };
+      const payload: Partial<Product> = { price: priceNum };
       if (editEstDays !== "") {
         payload.estimatedDays = Number(editEstDays);
       }
@@ -156,11 +163,19 @@ export function ManagerSection({
         body: JSON.stringify(payload),
       });
       if (response.ok) {
+        // Mirror update to Firestore
+        updateProductInFirestore(productId, payload).catch((err) => {
+          console.warn("Firestore price mirror failed (local server saved successfully):", err);
+        });
         setEditProductId(null);
+        setPriceSuccessNotice(`Price for "${productName || 'Item'}" successfully updated to ₹${priceNum}/-`);
+        setTimeout(() => setPriceSuccessNotice(null), 5000);
         onRefreshProducts();
       }
     } catch (err) {
-      console.error(err);
+      console.error("Error updating product price:", err);
+    } finally {
+      setIsSavingPrice(false);
     }
   };
 
@@ -718,6 +733,13 @@ export function ManagerSection({
               <span className="w-2.5 h-6 bg-[#E67E22] rounded-full inline-block" /> Active Menu Toggles & Price Manager
             </h3>
 
+            {priceSuccessNotice && (
+              <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 animate-fade-in shadow-xs">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{priceSuccessNotice}</span>
+              </div>
+            )}
+
             <div className="bg-white border border-[#FAD7A0] rounded-2xl overflow-hidden shadow-xs">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs bg-white">
@@ -753,8 +775,8 @@ export function ManagerSection({
                                 <DollarSign className="w-3.5 h-3.5 text-gray-400" />
                                 <input
                                   type="number"
-                                  value={editPrice}
-                                  onChange={(e) => setEditPrice(Number(e.target.value))}
+                                  value={editPrice === 0 ? "" : editPrice}
+                                  onChange={(e) => setEditPrice(e.target.value === "" ? 0 : Number(e.target.value))}
                                   className="w-full text-xs font-bold text-[#5D4037] focus:outline-none"
                                 />
                               </div>
@@ -801,10 +823,11 @@ export function ManagerSection({
                             {isEditing ? (
                               <div className="flex justify-end gap-1.5">
                                 <button
-                                  onClick={() => handleUpdateProductPrice(p.id)}
-                                  className="bg-emerald-600 text-white font-bold p-1 px-2 rounded hover:bg-emerald-700 text-[10px] cursor-pointer"
+                                  onClick={() => handleUpdateProductPrice(p.id, p.name)}
+                                  disabled={isSavingPrice}
+                                  className="bg-emerald-600 text-white font-bold p-1 px-2.5 rounded hover:bg-emerald-700 text-[10px] cursor-pointer disabled:opacity-50"
                                 >
-                                  Save Change
+                                  {isSavingPrice ? "Saving..." : "Save Change"}
                                 </button>
                                 <button
                                   onClick={() => setEditProductId(null)}

@@ -245,29 +245,11 @@ export function HomeSection({
             initial={{ opacity: 0, y: -15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.15 }}
-            className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-8 bg-gradient-to-r from-[#171717] to-[#121212] border-2 border-[#dfba73]/65 rounded-2xl px-6 py-4 max-w-full shadow-lg shadow-black/30 relative overflow-hidden"
+            className="flex items-center justify-center bg-gradient-to-r from-[#171717] to-[#121212] border-2 border-[#dfba73]/65 rounded-2xl px-6 py-3.5 max-w-full shadow-lg shadow-black/30 relative overflow-hidden"
           >
             {/* Top border highlight line */}
             <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-orange-500 via-[#dfba73] to-amber-500" />
             
-            <div className="flex items-center gap-2.5 text-[#FCFAF4] font-black text-xs sm:text-[13px] tracking-wide select-none">
-              <span className="text-lg shrink-0 animate-bounce">🚚</span>
-              <p className="text-orange-100 flex items-center gap-1.5 flex-wrap">
-                <span>
-                  {lang === "te" 
-                    ? "స్థానిక డెలివరీ (3 కిమీ లోపు):" 
-                    : lang === "hi" 
-                    ? "स्थानीय डिलीवरी (3 किमी के भीतर):" 
-                    : "Local Delivery (Within 3 km):"}
-                </span>
-                <span className="text-white font-mono bg-[#E67E22] px-2 py-0.5 rounded-md border border-[#dfba73]/30 text-xs shadow-inner">
-                  ₹30 {lang === "te" ? "మాత్రమే" : lang === "hi" ? "केवल" : "Only"}
-                </span>
-              </p>
-            </div>
-
-            <div className="hidden md:block h-6 w-[2px] bg-[#dfba73]/30 shrink-0" />
-
             <div className="flex items-center gap-2.5 text-[#FCFAF4] font-black text-xs sm:text-[13px] tracking-wide select-none">
               <span className="text-lg shrink-0">🎁</span>
               <p className="text-orange-100 flex items-center gap-1.5 flex-wrap">
@@ -355,8 +337,6 @@ export function HomeSection({
           >
             {[...Array(4)].map((_, index) => (
               <div key={index} className="flex gap-12 shrink-0 animate-infinite-scroll">
-                <span className="flex items-center gap-1.5"><span className="text-base">🍃</span> NO PALM OIL</span>
-                <span className="text-[#FAD7A0]/80">✦</span>
                 <span className="flex items-center gap-1.5"><span className="text-base">🛑</span> NO ARTIFICIAL PRESERVATIVES</span>
                 <span className="text-[#FAD7A0]/80">✦</span>
                 <span className="flex items-center gap-1.5"><span className="text-base">🎨</span> NO ADDED COLORS</span>

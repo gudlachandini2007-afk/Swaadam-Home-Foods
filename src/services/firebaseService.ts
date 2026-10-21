@@ -147,3 +147,15 @@ export const syncProductsToFirestore = async (products: Product[]) => {
     return false;
   }
 };
+
+// Mirror individual product updates directly to Firestore
+export const updateProductInFirestore = async (productId: string, updates: Partial<Product>) => {
+  try {
+    const prodRef = doc(db, "products", productId);
+    await setDoc(prodRef, updates, { merge: true });
+    return true;
+  } catch (error) {
+    console.warn("Could not sync product update directly to Firestore:", error);
+    return false;
+  }
+};

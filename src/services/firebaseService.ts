@@ -159,3 +159,15 @@ export const updateProductInFirestore = async (productId: string, updates: Parti
     return false;
   }
 };
+
+// Mirror individual order updates (status, deliveryOtp, deliveredAt) directly to Firestore
+export const updateOrderInFirestore = async (orderId: string, updates: Partial<Order>) => {
+  try {
+    const orderRef = doc(db, "orders", orderId);
+    await setDoc(orderRef, updates, { merge: true });
+    return true;
+  } catch (error) {
+    console.warn("Could not sync order update directly to Firestore:", error);
+    return false;
+  }
+};

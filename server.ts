@@ -430,6 +430,20 @@ const loadDB = () => {
         fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), "utf8");
       }
     }
+
+    // Ensure every existing order has a 4-digit delivery confirmation OTP
+    if (db && Array.isArray(db.orders)) {
+      let ordersUpdated = false;
+      db.orders.forEach((o: any) => {
+        if (!o.deliveryOtp) {
+          o.deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
+          ordersUpdated = true;
+        }
+      });
+      if (ordersUpdated) {
+        fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), "utf8");
+      }
+    }
     
     return db;
   } catch (error) {
@@ -509,6 +523,7 @@ app.post("/api/orders", (req, res) => {
   const orderDetails = req.body;
   const db = loadDB();
   
+  const generatedOtp = Math.floor(1000 + Math.random() * 9000).toString();
   const newOrder: Order = {
     id: "SWM-" + Math.floor(100000 + Math.random() * 900000),
     customerName: orderDetails.customerName,
@@ -519,7 +534,10 @@ app.post("/api/orders", (req, res) => {
     status: "Pending",
     notes: orderDetails.notes || "",
     createdAt: new Date().toISOString(),
-    notificationSent: false
+    notificationSent: false,
+    deliveryOtp: generatedOtp,
+    isDeliveryConfirmed: false,
+    deliveredConfirmationSent: false
   };
   
   db.orders.unshift(newOrder); // Add to beginning of orders list
@@ -529,15 +547,48 @@ app.post("/api/orders", (req, res) => {
 
 app.put("/api/orders/:id", (req, res) => {
   const { id } = req.params;
-  const { status, cancelReason } = req.body;
+  const { status, cancelReason, deliveryOtp, isDeliveryConfirmed, deliveredAt, deliveredConfirmationSent } = req.body;
   const db = loadDB();
   
   const index = db.orders.findIndex((o: Order) => o.id === id);
   if (index !== -1) {
-    db.orders[index].status = status;
+    if (status) {
+      db.orders[index].status = status;
+    }
     if (cancelReason !== undefined) {
       db.orders[index].cancelReason = cancelReason;
     }
+    if (deliveryOtp !== undefined) {
+      db.orders[index].deliveryOtp = deliveryOtp;
+    }
+    if (isDeliveryConfirmed !== undefined) {
+      db.orders[index].isDeliveryConfirmed = isDeliveryConfirmed;
+    }
+    if (deliveredAt !== undefined) {
+      db.orders[index].deliveredAt = deliveredAt;
+    }
+    if (deliveredConfirmationSent !== undefined) {
+      db.orders[index].deliveredConfirmationSent = deliveredConfirmationSent;
+    }
+    
+    // If marked as Completed, ensure timestamps and trigger automated notification
+    if (status === "Completed") {
+      db.orders[index].isDeliveryConfirmed = true;
+      if (!db.orders[index].deliveredAt) {
+        db.orders[index].deliveredAt = new Date().toISOString();
+      }
+      
+      // Auto-push confirmation notice to dashboard notification center
+      const deliveryNotice: PushNotification = {
+        id: "notif_deliv_" + Date.now(),
+        title: "Order Delivered!",
+        message: `Order #${id} for ${db.orders[index].customerName} (Phone: ${db.orders[index].phone}) has been safely delivered and confirmed.`,
+        type: "info",
+        createdAt: new Date().toISOString()
+      };
+      db.notifications.unshift(deliveryNotice);
+    }
+
     db.orders[index].notificationSent = true; // Mark as fresh update notification
     saveDB(db);
     res.json({ success: true, order: db.orders[index] });
@@ -598,6 +649,11 @@ app.post("/api/auth/login", (req, res) => {
   } else {
     res.status(401).json({ error: "Invalid username or password" });
   }
+});
+
+// Explicit API 404 handler to ensure API routes never fall through to HTML index.html
+app.all("/api/*", (req, res) => {
+  res.status(404).json({ error: `API endpoint not found: ${req.method} ${req.originalUrl}` });
 });
 
 // Setup development server or serving built assets

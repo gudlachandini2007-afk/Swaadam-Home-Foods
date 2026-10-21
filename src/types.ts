@@ -27,6 +27,10 @@ export interface Order {
   cancelReason?: string;
   createdAt: string;
   notificationSent?: boolean;
+  deliveryOtp?: string; // 4-digit OTP for delivery confirmation (e.g. "4829")
+  isDeliveryConfirmed?: boolean;
+  deliveredAt?: string;
+  deliveredConfirmationSent?: boolean;
 }
 
 export interface Review {

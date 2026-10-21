@@ -1,7 +1,7 @@
 import { useState, useEffect, FormEvent } from "react";
-import { Lock, FileSpreadsheet, UtensilsCrossed, Send, ShieldCheck, ToggleLeft, ToggleRight, Trash, Edit, RefreshCw, CheckCircle2, ChevronRight, DollarSign, Calendar, Cloud, Database, UploadCloud } from "lucide-react";
+import { Lock, FileSpreadsheet, UtensilsCrossed, Send, ShieldCheck, ToggleLeft, ToggleRight, Trash, Edit, RefreshCw, CheckCircle2, ChevronRight, DollarSign, Calendar, Cloud, Database, UploadCloud, Key, MessageSquare, PhoneCall, CheckCheck } from "lucide-react";
 import { Product, Order } from "../types";
-import { syncProductsToFirestore, saveOrderToFirestore, updateProductInFirestore } from "../services/firebaseService";
+import { syncProductsToFirestore, saveOrderToFirestore, updateProductInFirestore, updateOrderInFirestore } from "../services/firebaseService";
 
 interface ManagerSectionProps {
   products: Product[];
@@ -48,6 +48,94 @@ export function ManagerSection({
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
   const [cancelReasonText, setCancelReasonText] = useState("");
 
+  // Delivery OTP verification & customer confirmation fields
+  const [otpInputs, setOtpInputs] = useState<{ [orderId: string]: string }>({});
+  const [otpErrors, setOtpErrors] = useState<{ [orderId: string]: string }>({});
+  const [deliveryActionNotice, setDeliveryActionNotice] = useState<string | null>(null);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState<string | null>(null);
+
+  const getCleanPhone = (phoneStr: string) => {
+    const digits = (phoneStr || "").replace(/\D/g, "");
+    return digits.startsWith("91") && digits.length > 10 ? digits : "91" + digits;
+  };
+
+  const getSendOtpWhatsAppUrl = (order: Order) => {
+    const waPhone = getCleanPhone(order.phone);
+    const otp = order.deliveryOtp || "4829";
+    const msg = `Namāste ${order.customerName}! 🙏\n\nYour order *${order.id}* from *Swaadam Home Foods* is OUT FOR DELIVERY! 🛵\nBill Total: ₹${order.total}/-\n\n🔑 *YOUR DELIVERY CONFIRMATION OTP IS:* *${otp}*\n\nPlease share this 4-digit OTP with our delivery partner once you receive your package to verify successful delivery.\n\nThank you for choosing Swaadam! 🍲`;
+    return `https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}`;
+  };
+
+  const getDeliveredConfirmationWhatsAppUrl = (order: Order) => {
+    const waPhone = getCleanPhone(order.phone);
+    const msg = `Namāste ${order.customerName}! 🙏\n\nYour Swaadam Home Foods order *${order.id}* has been *SUCCESSFULLY DELIVERED*! 🎉📦\n\n*DELIVERED ITEMS:*\n${order.items.map(it => `• ${it.name} (${it.quantity} kg)`).join("\n")}\n\n*TOTAL BILL:* ₹${order.total}/- (Paid)\n*STATUS:* Verified & Delivered ✅\n\nWe hope you relish every bite of our handcrafted Telangana delicacies! 😋\nOrder fresh sweets & snacks anytime at:\n👉 https://swaadamhomefoods.com\n\nThank you for your trust! ❤️\n— Swaadam Home Foods, Jagtial`;
+    return `https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}`;
+  };
+
+  const handleVerifyOtpAndCompleteOrder = async (order: Order, bypassOtp = false) => {
+    const expectedOtp = (order.deliveryOtp || "").trim();
+    const enteredOtp = (otpInputs[order.id] || "").trim();
+
+    if (!bypassOtp && expectedOtp && enteredOtp !== expectedOtp) {
+      setOtpErrors((prev) => ({
+        ...prev,
+        [order.id]: `Incorrect OTP (${enteredOtp || 'Empty'}). Expected ${expectedOtp}. Please verify with customer.`,
+      }));
+      return;
+    }
+
+    setIsVerifyingOtp(order.id);
+    setOtpErrors((prev) => ({ ...prev, [order.id]: "" }));
+
+    try {
+      const deliveredTime = new Date().toISOString();
+      const payload: Partial<Order> = {
+        status: "Completed",
+        isDeliveryConfirmed: true,
+        deliveredAt: deliveredTime,
+      };
+
+      const response = await fetch(`/api/orders/${order.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        updateOrderInFirestore(order.id, payload).catch((err) => {
+          console.warn("Firestore order mirror warning:", err);
+        });
+
+        setDeliveryActionNotice(`🎉 Order #${order.id} for ${order.customerName} successfully verified with OTP & marked Delivered!`);
+        setTimeout(() => setDeliveryActionNotice(null), 6000);
+        onRefreshOrders();
+      }
+    } catch (err) {
+      console.error("Error verifying delivery:", err);
+    } finally {
+      setIsVerifyingOtp(null);
+    }
+  };
+
+  const handleMarkDeliveredMsgSent = async (order: Order) => {
+    try {
+      const payload: Partial<Order> = { deliveredConfirmationSent: true };
+      const res = await fetch(`/api/orders/${order.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        updateOrderInFirestore(order.id, payload).catch(console.warn);
+        setDeliveryActionNotice(`Delivered confirmation message marked as sent for Order #${order.id}!`);
+        setTimeout(() => setDeliveryActionNotice(null), 4000);
+        onRefreshOrders();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleLoginSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoginError("");
@@ -61,7 +149,8 @@ export function ManagerSection({
         setIsAuthenticated(true);
         localStorage.setItem("swaadam_admin_token", "secure_cookie_mock_123");
       } else {
-        const data = await response.json();
+        const text = await response.text();
+        const data = text && !text.trim().startsWith("<") ? JSON.parse(text) : {};
         setLoginError(data.error || "Invalid username or passkey");
       }
     } catch (err) {
@@ -445,6 +534,14 @@ export function ManagerSection({
             ))}
           </div>
 
+          {/* Filter notification notice */}
+          {deliveryActionNotice && (
+            <div className="p-3 bg-emerald-50 border-2 border-emerald-500 rounded-xl text-emerald-800 text-xs font-bold flex items-center gap-2 shadow-sm animate-fade-in">
+              <CheckCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{deliveryActionNotice}</span>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-6">
             {filteredOrders.length === 0 ? (
               <div className="bg-white border border-[#FAD7A0]/60 p-12 text-center rounded-2xl text-gray-600">
@@ -559,17 +656,112 @@ export function ManagerSection({
                     )}
 
                     {order.status === "Dispatched" && (
-                      <button
-                        onClick={() => handleUpdateOrderStatus(order.id, "Completed")}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl cursor-pointer shadow-md transition-all w-full md:w-44 text-center"
-                      >
-                        Confirm Successful Dropoff
-                      </button>
+                      <div className="w-full md:w-52 space-y-2.5 bg-gradient-to-b from-cyan-50/50 to-orange-50/40 p-3 rounded-xl border border-cyan-200 shadow-xs">
+                        {/* OTP Display Badge */}
+                        <div className="flex items-center justify-between bg-white px-2.5 py-1.5 rounded-lg border border-[#FAD7A0] shadow-2xs">
+                          <span className="text-[10px] font-black text-gray-500 uppercase flex items-center gap-1 font-mono">
+                            <Key className="w-3 h-3 text-[#E67E22]" /> Delivery OTP:
+                          </span>
+                          <span className="font-mono text-sm font-black text-[#E67E22] tracking-widest bg-orange-50 px-2 py-0.5 rounded border border-orange-200">
+                            {order.deliveryOtp || "4829"}
+                          </span>
+                        </div>
+
+                        {/* WhatsApp Send OTP Button */}
+                        <a
+                          href={getSendOtpWhatsAppUrl(order)}
+                          target="_blank"
+                          referrerPolicy="no-referrer"
+                          className="bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-[11px] py-2 px-3 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 w-full text-center"
+                          title="Send OTP to customer phone via WhatsApp"
+                        >
+                          <Send className="w-3 h-3" /> 📲 Send OTP to Customer
+                        </a>
+
+                        {/* OTP Verification Input */}
+                        <div className="space-y-1.5 pt-1 border-t border-cyan-100">
+                          <label className="text-[9.5px] font-bold text-[#5D4037] block">
+                            Enter Customer OTP to Confirm:
+                          </label>
+                          <div className="flex gap-1.5">
+                            <input
+                              type="text"
+                              maxLength={6}
+                              placeholder="4-digit OTP"
+                              value={otpInputs[order.id] || ""}
+                              onChange={(e) => {
+                                const val = e.target.value.trim();
+                                setOtpInputs((prev) => ({ ...prev, [order.id]: val }));
+                                if (otpErrors[order.id]) {
+                                  setOtpErrors((prev) => ({ ...prev, [order.id]: "" }));
+                                }
+                              }}
+                              className="w-full text-center text-xs font-mono font-black p-1.5 bg-white border border-[#FAD7A0] rounded-lg text-[#5D4037] focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                            />
+                            <button
+                              onClick={() => handleVerifyOtpAndCompleteOrder(order)}
+                              disabled={isVerifyingOtp === order.id}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[10px] px-3 py-1.5 rounded-lg shadow-xs transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                            >
+                              {isVerifyingOtp === order.id ? "Checking..." : "Verify & Deliver"}
+                            </button>
+                          </div>
+
+                          {otpErrors[order.id] && (
+                            <p className="text-[9px] text-red-600 font-bold bg-red-50 p-1 rounded border border-red-200">
+                              ⚠️ {otpErrors[order.id]}
+                            </p>
+                          )}
+
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Confirm delivery for Order #${order.id} without customer OTP?`)) {
+                                handleVerifyOtpAndCompleteOrder(order, true);
+                              }
+                            }}
+                            className="text-[9px] text-gray-400 hover:text-gray-600 underline block text-center w-full pt-0.5 cursor-pointer"
+                          >
+                            Manager Override (No OTP)
+                          </button>
+                        </div>
+                      </div>
                     )}
 
                     {order.status === "Completed" && (
-                      <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs p-2 px-4 bg-emerald-50 rounded-xl border border-emerald-100">
-                        <CheckCircle2 className="w-4 h-4" /> Order Complete
+                      <div className="w-full md:w-52 space-y-2 bg-emerald-50/60 p-3 rounded-xl border border-emerald-200 text-center">
+                        <div className="flex items-center justify-center gap-1.5 text-emerald-700 font-black text-xs">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Successfully Delivered!
+                        </div>
+                        <p className="text-[9.5px] text-gray-500 font-mono">
+                          Verified with OTP: <strong className="text-emerald-700">{order.deliveryOtp || "Confirmed"}</strong>
+                        </p>
+                        {order.deliveredAt && (
+                          <p className="text-[9px] text-gray-400 font-mono">
+                            Delivered at {new Date(order.deliveredAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        )}
+
+                        {/* Send Delivered Confirmation Msg Button */}
+                        <div className="pt-1.5 border-t border-emerald-200/60 space-y-1">
+                          <a
+                            href={getDeliveredConfirmationWhatsAppUrl(order)}
+                            target="_blank"
+                            referrerPolicy="no-referrer"
+                            onClick={() => handleMarkDeliveredMsgSent(order)}
+                            className="bg-[#25D366] hover:bg-[#128C7E] text-white font-extrabold text-[10.5px] py-2 px-2.5 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 w-full text-center cursor-pointer"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" /> 💬 Send Delivered Msg
+                          </a>
+                          {order.deliveredConfirmationSent ? (
+                            <span className="text-[8.5px] text-emerald-700 font-bold block flex items-center justify-center gap-1">
+                              <CheckCheck className="w-3 h-3 text-emerald-600" /> Delivered Msg Sent to Customer
+                            </span>
+                          ) : (
+                            <span className="text-[8.5px] text-gray-400 block">
+                              Click to send delivery receipt on WhatsApp
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )}
 

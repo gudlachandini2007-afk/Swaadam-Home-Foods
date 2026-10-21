@@ -286,42 +286,61 @@ export function HomeSection({
             </p>
           </div>
 
-          <p className="text-xs sm:text-sm text-[#E5CFA3] max-w-2xl mx-auto leading-relaxed font-sans font-medium">
-            {t.heroDesc}
-          </p>
+          {/* 2. EXPLORE OUR CATEGORIES (Swapped into Hero Card) */}
+          <div id="categories-rail-section" className="pt-6 max-w-6xl mx-auto space-y-4">
+            <div className="text-center space-y-1">
+              <div className="inline-flex items-center gap-1 bg-[#dfba73]/15 border border-[#dfba73]/40 px-3.5 py-1 rounded-full text-[11px] text-[#dfba73] font-black uppercase tracking-wider font-mono shadow-xs">
+                <ShoppingBag className="w-3.5 h-3.5 text-[#dfba73]" /> Browse Catalogues
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                {lang === "te" ? "ప్రసిద్ధ వంటకాల వర్గాలు" : lang === "hi" ? "हमारे व्यंजनों की श्रेणियां" : "Explore Our Categories"}
+              </h2>
+              <p className="text-xs text-orange-100/80 max-w-lg mx-auto">
+                Click on any circle to navigate directly to our freshly-made menu collection preloaded with that category.
+              </p>
+            </div>
 
-          <div id="hero-actions" className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-4 w-full sm:w-auto">
-            <button
-              onClick={onOrderNow}
-              className="w-full sm:w-auto bg-[#C5A059] hover:bg-[#DFBA73] text-[#121212] font-black tracking-wider text-xs uppercase px-10 py-4 rounded-xl transition-all duration-300 transform hover:scale-[1.03] shadow-lg shadow-[#C5A059]/15 flex items-center justify-center gap-2 cursor-pointer group"
-            >
-              {t.exploreMenu} <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
-            <a
-              href="#categories-rail-section"
-              className="w-full sm:w-auto border border-[#C5A059]/50 hover:bg-[#C5A059]/10 text-[#DFBA73] hover:text-white font-bold px-10 py-4 rounded-xl transition-colors text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer bg-transparent"
-            >
-              {lang === "te" ? "వర్గాలు చూడండి" : lang === "hi" ? "श्रेणियां देखें" : "View Categories"}
-            </a>
-          </div>
-
-          {/* Quick core metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 w-full max-w-3xl mx-auto pt-10 text-center border-t border-[#C5A059]/20 mt-12">
-            <div>
-              <p className="text-2xl sm:text-3xl font-extrabold text-[#DFBA73] font-mono leading-none">100%</p>
-              <p className="text-[10px] text-[#E5CFA3]/75 uppercase tracking-widest mt-1.5 font-bold font-mono">{t.preservativeFree}</p>
-            </div>
-            <div>
-              <p className="text-2xl sm:text-3xl font-extrabold text-[#DFBA73] font-mono leading-none">35+</p>
-              <p className="text-[10px] text-[#E5CFA3]/75 uppercase tracking-widest mt-1.5 font-bold font-mono">{t.snacksSweets}</p>
-            </div>
-            <div>
-              <p className="text-2xl sm:text-3xl font-extrabold text-[#DFBA73] font-mono leading-none">FRESH</p>
-              <p className="text-[10px] text-[#E5CFA3]/75 uppercase tracking-widest mt-1.5 font-bold font-mono">{t.cookedOrder}</p>
-            </div>
-            <div>
-              <p className="text-2xl sm:text-3xl font-extrabold text-[#DFBA73] font-mono leading-none">GLOBAL</p>
-              <p className="text-[10px] text-[#E5CFA3]/75 uppercase tracking-widest mt-1.5 font-bold font-mono">{t.worldwideDelivery}</p>
+            {/* Circular Grid Container in Hero */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4 max-w-6xl mx-auto px-2 pt-2">
+              {categoriesList.map((cat) => (
+                <motion.div
+                  key={cat.symbol}
+                  whileHover={{ y: -6, scale: 1.05 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  onClick={() => handleCategoryClick(cat.symbol)}
+                  className="flex flex-col items-center text-center cursor-pointer group space-y-2 p-3 rounded-2xl bg-neutral-900/60 border border-[#dfba73]/30 hover:border-[#dfba73] hover:bg-neutral-900/90 transition-all duration-300 shadow-md"
+                >
+                  {/* Image Circle */}
+                  <div className="relative w-18 h-18 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-[#dfba73] bg-neutral-950 p-1 group-hover:shadow-lg group-hover:shadow-[#dfba73]/30 transition-all duration-300">
+                    <img
+                      src={cat.image}
+                      alt={cat.symbol}
+                      loading="lazy"
+                      decoding="async"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        if (!target.dataset.hasFallback) {
+                          target.dataset.hasFallback = "true";
+                          target.src = DEFAULT_FALLBACK_IMG;
+                        }
+                      }}
+                      className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-black/15 rounded-full group-hover:bg-transparent transition-colors duration-300 pointer-events-none" />
+                  </div>
+                  
+                  {/* Category Info */}
+                  <div className="space-y-0.5">
+                    <h4 className="text-[11px] sm:text-xs font-black text-amber-100 group-hover:text-[#dfba73] uppercase tracking-wide leading-tight transition-colors">
+                      {lang === "te" ? cat.titleTe : lang === "hi" ? cat.titleHi : cat.titleEn}
+                    </h4>
+                    <p className="text-[9px] text-gray-400 font-mono group-hover:text-gray-200">
+                      {cat.desc}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
             </div>
           </div>
         </div>
@@ -351,61 +370,60 @@ export function HomeSection({
         </div>
       </div>
 
-      {/* 4. "OUR CATEGORIES" CIRCULAR CAROUSEL GRID */}
-      <section id="categories-rail-section" className="scroll-mt-24 space-y-6 pt-4">
-        <div className="text-center max-w-xl mx-auto space-y-2">
-          <div className="inline-flex items-center gap-1 bg-[#dfba73]/10 border border-[#dfba73]/30 px-3 py-1 rounded-full text-[10px] text-[#dfba73] font-black uppercase tracking-wider font-mono">
-            <ShoppingBag className="w-3 h-3 text-[#dfba73]" /> Browse Catalogues
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#5D4037] tracking-tight">
-            {lang === "te" ? "ప్రసిద్ధ వంటకాల వర్గాలు" : lang === "hi" ? "हमारे व्यंजनों की श्रेणियां" : "Explore Our Categories"}
-          </h2>
-          <p className="text-xs sm:text-sm text-gray-600">
-            Click on any circle to navigate directly to our freshly-made menu collection preloaded with that category.
-          </p>
-        </div>
+      {/* 4. HERITAGE STORY & QUALITY METRICS CARD (Swapped with Explore Categories) */}
+      <section id="heritage-trust-section" className="scroll-mt-24 max-w-5xl mx-auto px-4 pt-6">
+        <div className="bg-gradient-to-b from-white via-[#FFFDF9] to-[#FFF9F2] border-2 border-[#dfba73]/40 rounded-3xl p-8 sm:p-12 shadow-lg shadow-amber-900/5 text-center space-y-6 relative overflow-hidden">
+          {/* Subtle top decorative ribbon */}
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-amber-400 via-[#E67E22] to-[#C0392B]" />
 
-        {/* Circular Grid Container */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-6 max-w-6xl mx-auto px-2">
-          {categoriesList.map((cat) => (
-            <motion.div
-              key={cat.symbol}
-              whileHover={{ y: -6, scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              onClick={() => handleCategoryClick(cat.symbol)}
-              className="flex flex-col items-center text-center cursor-pointer group space-y-2.5 p-3 rounded-2xl bg-white/40 border border-[#dfba73]/20 hover:border-[#dfba73]/70 hover:bg-white/90 transition-all duration-300"
+          {/* Badge */}
+          <div className="inline-flex items-center gap-1.5 bg-[#dfba73]/15 border border-[#dfba73]/40 px-4 py-1.5 rounded-full text-[11px] text-[#5D4037] font-black uppercase tracking-widest font-mono">
+            ★ AUTHENTIC TELUGU HOME FOOD ★
+          </div>
+
+          <h2 className="text-2xl sm:text-4xl font-extrabold text-[#5D4037] font-display tracking-tight max-w-2xl mx-auto leading-tight">
+            Traditional Hand Crafted Flavours Delivered Worldwide
+          </h2>
+
+          <p className="text-xs sm:text-base text-gray-700 max-w-3xl mx-auto leading-relaxed font-medium">
+            {t.heroDesc}
+          </p>
+
+          {/* Action Buttons */}
+          <div id="hero-actions" className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-2">
+            <button
+              onClick={onOrderNow}
+              className="w-full sm:w-auto bg-[#E67E22] hover:bg-[#D35400] text-white font-black tracking-wider text-xs uppercase px-10 py-4 rounded-xl transition-all duration-300 transform hover:scale-[1.03] shadow-md shadow-orange-200 flex items-center justify-center gap-2 cursor-pointer group"
             >
-              {/* Image Circle */}
-              <div className="relative w-20 h-20 sm:w-22 sm:h-22 rounded-full overflow-hidden border-2 border-[#dfba73] bg-orange-50/50 p-1 group-hover:shadow-lg group-hover:shadow-[#dfba73]/20 transition-all duration-300">
-                <img
-                  src={cat.image}
-                  alt={cat.symbol}
-                  loading="lazy"
-                  decoding="async"
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    if (!target.dataset.hasFallback) {
-                      target.dataset.hasFallback = "true";
-                      target.src = DEFAULT_FALLBACK_IMG;
-                    }
-                  }}
-                  className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-black/10 rounded-full group-hover:bg-transparent transition-colors duration-300 pointer-events-none" />
-              </div>
-              
-              {/* Category Info */}
-              <div className="space-y-0.5">
-                <h4 className="text-[11px] sm:text-xs font-black text-[#5D4037] group-hover:text-[#dfba73] uppercase tracking-wide leading-tight transition-colors">
-                  {lang === "te" ? cat.titleTe : lang === "hi" ? cat.titleHi : cat.titleEn}
-                </h4>
-                <p className="text-[9px] text-gray-500 font-mono group-hover:text-[#5D4037]">
-                  {cat.desc}
-                </p>
-              </div>
-            </motion.div>
-          ))}
+              {t.exploreMenu} <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </button>
+            <a
+              href="#categories-rail-section"
+              className="w-full sm:w-auto border-2 border-[#E67E22]/60 hover:bg-orange-50 text-[#5D4037] hover:text-[#E67E22] font-bold px-10 py-4 rounded-xl transition-colors text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer bg-white"
+            >
+              {lang === "te" ? "వర్గాలు చూడండి" : lang === "hi" ? "श्रेणियां देखें" : "View Categories"}
+            </a>
+          </div>
+
+          {/* Core Quality Metrics (100% Preservative Free, 35+ Snacks & Sweets, FRESH Cooked to Order, GLOBAL Worldwide Delivery) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 w-full max-w-3xl mx-auto pt-8 border-t border-[#dfba73]/30 mt-4">
+            <div className="p-3 bg-white/80 rounded-2xl border border-[#dfba73]/25 shadow-2xs">
+              <p className="text-2xl sm:text-3xl font-black text-[#E67E22] font-mono leading-none">100%</p>
+              <p className="text-[10px] sm:text-[10.5px] text-[#5D4037] uppercase tracking-wider mt-1.5 font-black font-mono">{t.preservativeFree}</p>
+            </div>
+            <div className="p-3 bg-white/80 rounded-2xl border border-[#dfba73]/25 shadow-2xs">
+              <p className="text-2xl sm:text-3xl font-black text-[#E67E22] font-mono leading-none">35+</p>
+              <p className="text-[10px] sm:text-[10.5px] text-[#5D4037] uppercase tracking-wider mt-1.5 font-black font-mono">{t.snacksSweets}</p>
+            </div>
+            <div className="p-3 bg-white/80 rounded-2xl border border-[#dfba73]/25 shadow-2xs">
+              <p className="text-2xl sm:text-3xl font-black text-[#E67E22] font-mono leading-none">FRESH</p>
+              <p className="text-[10px] sm:text-[10.5px] text-[#5D4037] uppercase tracking-wider mt-1.5 font-black font-mono">{t.cookedOrder}</p>
+            </div>
+            <div className="p-3 bg-white/80 rounded-2xl border border-[#dfba73]/25 shadow-2xs">
+              <p className="text-2xl sm:text-3xl font-black text-[#E67E22] font-mono leading-none">GLOBAL</p>
+              <p className="text-[10px] sm:text-[10.5px] text-[#5D4037] uppercase tracking-wider mt-1.5 font-black font-mono">{t.worldwideDelivery}</p>
+            </div>
+          </div>
         </div>
       </section>
 

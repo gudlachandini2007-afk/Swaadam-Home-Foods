@@ -27,7 +27,8 @@ import { LiveChat } from "./components/LiveChat";
 import { SwaadamLogo } from "./components/SwaadamLogo";
 import { UserAuthButton } from "./components/UserAuthButton";
 import { User as FirebaseUser } from "firebase/auth";
-import { subscribeToAuth, saveReviewToFirestore } from "./services/firebaseService";
+import { subscribeToAuth, saveReviewToFirestore, subscribeToFirestoreOrders, subscribeToFirestoreReviews } from "./services/firebaseService";
+import { INITIAL_PRODUCTS, INITIAL_REVIEWS, INITIAL_NOTIFICATIONS } from "./data/initialData";
 
 // Types
 import { Product, Order, Review, PushNotification } from "./types";
@@ -48,11 +49,11 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<"home" | "menu" | "cart" | "reviews" | "contact" | "manager">("home");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-  // Real-time backend state variables
-  const [products, setProducts] = useState<Product[]>([]);
+  // Real-time backend state variables initialized with reliable default data
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [notifications, setNotifications] = useState<PushNotification[]>([]);
+  const [reviews, setReviews] = useState<Review[]>(INITIAL_REVIEWS);
+  const [notifications, setNotifications] = useState<PushNotification[]>(INITIAL_NOTIFICATIONS);
   
   // Firebase Authenticated user state
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
@@ -68,91 +69,88 @@ export default function App() {
   const [activeToast, setActiveToast] = useState<PushNotification | null>(null);
   const [seenNotificationIds, setSeenNotificationIds] = useState<Set<string>>(new Set());
 
-  // API Data fetching
-  const refreshMenuData = async () => {
+  // Safe JSON fetch utility to prevent "Unexpected token '<' / doctype" errors when proxies return HTML
+  const fetchJsonSafely = async <T,>(url: string): Promise<T | null> => {
     try {
-      const res = await fetch("/api/menu");
-      if (res.ok) {
-        const data = await res.json();
-        setProducts(data);
+      const res = await fetch(url, {
+        headers: { "Accept": "application/json" },
+      });
+      if (!res.ok) return null;
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        return null;
       }
-    } catch (err) {
-      console.error("Failed to sync menu catalogue:", err);
+      const text = await res.text();
+      if (!text || text.trim().startsWith("<")) {
+        return null;
+      }
+      return JSON.parse(text) as T;
+    } catch {
+      return null;
+    }
+  };
+
+  // API Data fetching with safe parsing and error guards
+  const refreshMenuData = async () => {
+    const data = await fetchJsonSafely<Product[]>("/api/menu");
+    if (data && Array.isArray(data) && data.length > 0) {
+      setProducts(data);
     }
   };
 
   const refreshOrdersData = async () => {
-    try {
-      const res = await fetch("/api/orders");
-      if (res.ok) {
-        const data = await res.json();
-        setOrders(data);
-        
-        // Dynamic push update if order from active customer is transitioned!
-        const adminToken = localStorage.getItem("swaadam_admin_token");
-        // Non-admin represents the customers who placed orders
-        if (!adminToken) {
-          const userPhone = localStorage.getItem("customer_phone");
-          if (userPhone) {
-            const customerActiveOrders = data.filter((o: Order) => o.phone === userPhone);
-            // Check if any status changed to Dispatch/Completed is fresh
-            customerActiveOrders.forEach((o: Order) => {
-              if (o.status !== "Pending" && o.notificationSent && !seenNotificationIds.has(o.id + o.status)) {
-                setActiveToast({
-                  id: o.id + o.status,
-                  title: `🔥 Order status update: ${o.id}`,
-                  message: `Your food crate has transitioned to: ${o.status}! Our chef compiled it with absolute fresh quality!`,
-                  type: "info",
-                  createdAt: new Date().toISOString()
-                });
-                // Add to seen so it doesn't trigger thrice
-                seenNotificationIds.add(o.id + o.status);
-                setSeenNotificationIds(new Set(seenNotificationIds));
-              }
-            });
-          }
+    const data = await fetchJsonSafely<Order[]>("/api/orders");
+    if (data && Array.isArray(data)) {
+      setOrders(data);
+      
+      // Dynamic push update if order from active customer is transitioned!
+      const adminToken = localStorage.getItem("swaadam_admin_token");
+      if (!adminToken) {
+        const userPhone = localStorage.getItem("customer_phone");
+        if (userPhone) {
+          const customerActiveOrders = data.filter((o: Order) => o.phone === userPhone);
+          customerActiveOrders.forEach((o: Order) => {
+            if (o.status !== "Pending" && o.notificationSent && !seenNotificationIds.has(o.id + o.status)) {
+              setActiveToast({
+                id: o.id + o.status,
+                title: `🔥 Order status update: ${o.id}`,
+                message: `Your food crate has transitioned to: ${o.status}! Our chef compiled it with absolute fresh quality!`,
+                type: "info",
+                createdAt: new Date().toISOString()
+              });
+              seenNotificationIds.add(o.id + o.status);
+              setSeenNotificationIds(new Set(seenNotificationIds));
+            }
+          });
         }
       }
-    } catch (err) {
-      console.error("Failed to sync customer orders database:", err);
     }
   };
 
   const refreshReviewsData = async () => {
-    try {
-      const res = await fetch("/api/reviews");
-      if (res.ok) {
-        const data = await res.json();
-        setReviews(data);
-      }
-    } catch (err) {
-      console.error("Failed to retrieve reviews:", err);
+    const data = await fetchJsonSafely<Review[]>("/api/reviews");
+    if (data && Array.isArray(data) && data.length > 0) {
+      setReviews(data);
     }
   };
 
   const refreshNotificationsData = async () => {
-    try {
-      const res = await fetch("/api/notifications");
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data);
+    const data = await fetchJsonSafely<PushNotification[]>("/api/notifications");
+    if (data && Array.isArray(data)) {
+      setNotifications(data);
 
-        // Check if there is an unread discount/info bulletin to toast push notify
-        if (data.length > 0) {
-          const newest = data[0];
-          if (!seenNotificationIds.has(newest.id)) {
-            setActiveToast(newest);
-            seenNotificationIds.add(newest.id);
-            setSeenNotificationIds(new Set(seenNotificationIds));
-          }
+      if (data.length > 0) {
+        const newest = data[0];
+        if (!seenNotificationIds.has(newest.id)) {
+          setActiveToast(newest);
+          seenNotificationIds.add(newest.id);
+          setSeenNotificationIds(new Set(seenNotificationIds));
         }
       }
-    } catch (err) {
-      console.error("Failed to fetch notification bulletins:", err);
     }
   };
 
-  // Initial loads and real-time polling synchronizations (every 3 seconds)
+  // Initial loads, real-time polling synchronizations, and Firestore backups
   useEffect(() => {
     refreshMenuData();
     refreshOrdersData();
@@ -164,15 +162,30 @@ export default function App() {
       setFirebaseUser(user);
     });
 
+    // Firestore real-time listeners for persistent sync across cloud
+    const unsubscribeOrders = subscribeToFirestoreOrders((cloudOrders) => {
+      if (cloudOrders && cloudOrders.length > 0) {
+        setOrders(cloudOrders);
+      }
+    });
+
+    const unsubscribeReviews = subscribeToFirestoreReviews((cloudReviews) => {
+      if (cloudReviews && cloudReviews.length > 0) {
+        setReviews(cloudReviews);
+      }
+    });
+
     const interval = setInterval(() => {
       refreshMenuData();
       refreshOrdersData();
       refreshNotificationsData();
-    }, 3000);
+    }, 4000);
 
     return () => {
       clearInterval(interval);
       unsubscribeAuth();
+      unsubscribeOrders();
+      unsubscribeReviews();
     };
   }, []);
 
@@ -221,7 +234,8 @@ export default function App() {
         body: JSON.stringify({ customerName, rating, text }),
       });
       if (res.ok) {
-        const data = await res.json();
+        const text = await res.text();
+        const data = text && !text.trim().startsWith("<") ? JSON.parse(text) : {};
         if (data.review) {
           saveReviewToFirestore(data.review).catch((err) =>
             console.warn("Firestore review backup notice:", err)
